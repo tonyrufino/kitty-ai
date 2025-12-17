@@ -10,6 +10,17 @@ export const getGroqResponse = async (messages) => {
   // Imprimimos solo los primeros caracteres para verificar que la lee sin mostrarla toda
   console.log("🟢 Llave detectada:", API_KEY.substring(0, 10) + "...");
 
+  // --- OPTIMIZACIÓN DE MEMORIA (Evita el Error 429) ---
+  // 1. Guardamos siempre el mensaje #0 (El System Prompt con la personalidad de Kitty)
+  const systemMessage = messages[0];
+
+  // 2. Del resto de la conversación, tomamos solo los últimos 10 mensajes.
+  // slice(1) ignora el primero (system), slice(-10) toma los últimos 10.
+  const recentHistory = messages.slice(1).slice(-10);
+
+  // 3. Reconstruimos el array optimizado para enviar a Groq
+  const messagesToSend = [systemMessage, ...recentHistory];
+
   try {
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
@@ -18,8 +29,7 @@ export const getGroqResponse = async (messages) => {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        messages: messages,
-        // Usamos el modelo más rápido y permisivo actualmente
+        messages: messagesToSend, // <--- AQUÍ ENVIAMOS LA VERSIÓN CORTA
         model: "llama-3.1-8b-instant",
         temperature: 0.6,
         max_tokens: 200

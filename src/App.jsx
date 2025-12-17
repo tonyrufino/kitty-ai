@@ -1,40 +1,32 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, useGLTF, Environment, ContactShadows } from '@react-three/drei';
+import { OrbitControls, useGLTF, Environment, ContactShadows, useAnimations } from '@react-three/drei';
 import { getGroqResponse } from './services/groq';
-import { useAnimations } from '@react-three/drei'; // <--- Añade useAnimations aquí
-// --- COMPONENTE AVATAR (Intacto) ---
+
+// --- COMPONENTE AVATAR (Sin cambios) ---
 function Avatar3D() {
   const group = useRef();
-  
-  // 1. Extraemos también 'animations' del archivo
   const { scene, animations } = useGLTF('/kitty.glb');
-  
-  // 2. Preparamos el sistema de animación vinculado al grupo (ref)
   const { actions, names } = useAnimations(animations, group);
 
-  // 3. Efecto para reproducir la animación al cargar
   useEffect(() => {
-    // Imprimimos los nombres en la consola (F12) para que sepas cómo se llaman
-    console.log("Nombres de animaciones encontradas:", names);
-
-    // Si hay animaciones, reproducimos la primera que encuentre
     if (names.length > 0) {
       actions[names[0]].reset().fadeIn(0.5).play();
     }
-    
-    // Opcional: Si sabes el nombre exacto (ej: "Idle"), usa esto:
-    // actions["Idle"]?.reset().fadeIn(0.5).play();
-
   }, [actions, names]);
 
   return (
-    // Es importante envolver el modelo en un group con la referencia
-    <group ref={group} position={[0, -2, 0]} scale={0.8}>
+    <group ref={group} position={[0, -1.5, 0]} scale={0.6}>
       <primitive object={scene} />
     </group>
   );
 }
+
+// --- CONSTANTES ---
+const INITIAL_MSG = [
+  { role: 'system', content: 'Eres hello kitty, adorable, amigable y muy tierno. Escribes un poco como Argentino. Usas emojis kawaii como 😺, 💖, ✨. Tus respuestas son alegres, irónicas, contundentes. Tu creador es Antonio, fuiste creada para ayudar, acompañar y entretener a Sofia (La novia de Antonio)' },
+  { role: 'assistant', content: '¡Holaaa Sofi! 😺💖 ¡Vamos a jugar, a reír y a hacer cosas divertidas juntas! ✨' }
+];
 
 // --- APP PRINCIPAL ---
 export default function App() {
@@ -42,94 +34,132 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const chatContainerRef = useRef(null);
   
-  // Historial y Personalidad (Ajustada a "amigable")
-  const [messages, setMessages] = useState([
-    { role: 'system', content: 'Eres hello kitty, adorable, amigable y muy tierno. Escribes un poco como Argentino . Usas emojis kawaii como 😺, 💖, ✨. Tus respuestas son alegres, ironicas, contundentes. Tu creador es Antonio, fuiste creada para ayudar, acompañar y entretener a Sofia (La novia de Antonio)' },
-    { role: 'assistant', content: '¡Holaaa Sofi1! 😺💖 ¡Vamos a jugar, a reír y a hacer cosas divertidas juntas! ✨' }
-  ]);
+  // Memoria
+  const [messages, setMessages] = useState(() => {
+    const saved = localStorage.getItem('kitty_history');
+    return saved ? JSON.parse(saved) : INITIAL_MSG;
+  });
 
-  // Auto-scroll hacia abajo cuando llega un mensaje nuevo
   useEffect(() => {
+    localStorage.setItem('kitty_history', JSON.stringify(messages));
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [messages]);
 
-  const handleSend = async () => {
-    if (!input.trim()) return;
+// --- FUNCIÓN SONIDO INTELIGENTE ---
+  const playSound = (filename) => {
+    try {
+      const audio = new Audio(`/${filename}`); 
+      audio.volume = 0.5; 
+      audio.play().catch(e => console.log("Audio bloqueado o no encontrado"));
+    } catch (error) {
+      console.error("Error al reproducir sonido:", error);
+    }
+  };
 
-    const userMsg = { role: 'user', content: input };
+  // --- LÓGICA DE ENVÍO ---
+// --- LÓGICA DE ENVÍO CON DETECCIÓN DE CONTEXTO ---
+  const handleSend = async (textOverride = null) => {
+    const textToSend = textOverride || input;
+    if (!textToSend.trim()) return;
+
+    // 1. ANÁLISIS DE INTENCIÓN (¿Qué sonido ponemos?)
+    const lowerText = textToSend.toLowerCase();
+    let soundToPlay = 'meow.mp3'; // Sonido por defecto
+
+    // Si saluda...
+    if (lowerText.includes('hola') || lowerText.includes('buen dia') || lowerText.includes('buenas')) {
+      soundToPlay = 'hellokitty.mp3';
+    } 
+    // Si le piden cantar...
+    else if (lowerText.includes('canta') || lowerText.includes('cancion') || lowerText.includes('cantame')) {
+      soundToPlay = 'miaumiaumiau.mp3';
+    }
+
+    // 2. Actualizamos interfaz
+    const userMsg = { role: 'user', content: textToSend };
     const newHistory = [...messages, userMsg];
     
     setMessages(newHistory);
     setInput('');
     setLoading(true);
 
-    // Llamamos a Groq
+    // 3. Llamamos a la IA
     const replyText = await getGroqResponse(newHistory);
+    
+    // 4. REPRODUCIMOS EL SONIDO ELEGIDO
+    playSound(soundToPlay);
 
     setMessages(prev => [...prev, { role: 'assistant', content: replyText }]);
     setLoading(false);
   };
 
+  const resetChat = () => {
+    if (window.confirm("¿Querés borrar la memoria y empezar de cero? 😺")) {
+      setMessages(INITIAL_MSG);
+      localStorage.removeItem('kitty_history');
+    }
+  };
+
+  const handleSurprise = () => {
+    handleSend("¡Sorpréndeme! Haz algo divertido ✨");
+  };
+
   return (
-    // CONTENEDOR PRINCIPAL - Fondo rosa con patrón retro
-    <div className="flex h-screen w-full bg-[#ffcce6] relative overflow-hidden">
+    <div className="flex flex-col md:flex-row h-screen w-full bg-[#ffcce6] relative overflow-hidden">
         
-        {/* Patrón de fondo sutil (dithering) */}
         <div className="absolute inset-0 z-0 opacity-10 pointer-events-none" 
              style={{backgroundImage: `radial-gradient(circle, #ff77a8 1px, transparent 1px)`, backgroundSize: '4px 4px'}}>
         </div>
 
-      {/* ZONA IZQUIERDA: AVATAR 3D (50% ancho) */}
-      <div className="w-1/2 h-full relative z-10">
+      {/* ZONA 1: AVATAR */}
+      <div className="w-full h-[40%] md:w-1/2 md:h-full relative z-10 bg-gradient-to-b from-transparent to-[#ffcce6]/50">
         <Canvas camera={{ position: [0, 1, 4], fov: 50 }}>
-          {/* Iluminación cálida y suave */}
           <ambientLight intensity={1} color={"#ffe6f2"} />
           <directionalLight position={[5, 5, 5]} intensity={1.5} color={"#fff0f5"} />
           <spotLight position={[-2, 5, 2]} angle={0.3} intensity={1} castShadow color={"#ff99cc"} />
-          
-          {/* Sombra suave en el suelo */}
-          <ContactShadows opacity={0.8} scale={10} blur={3} far={4} resolution={256} position={[0, -2, 0]} color="#ff77a8" />
-          
+          <ContactShadows opacity={1} scale={15} blur={3} far={4} resolution={256} position={[0, -1.52, 0]} color="#ff77a8" />
           <Avatar3D />
-          {/* Limitamos el movimiento para que no rompa la estética */}
-          <OrbitControls enableZoom={true} maxPolarAngle={Math.PI / 1} minDistance={5} maxDistance={10}/>
+          <OrbitControls enableZoom={true} maxPolarAngle={Math.PI / 1} minDistance={3} maxDistance={10}/>
         </Canvas>
       </div>
 
-      {/* ZONA DERECHA: CHAT (50% ancho, flotando sobre el fondo) */}
-      <div className="w-1/2 h-full flex items-center justify-center p-6 z-20">
+      {/* ZONA 2: CHAT */}
+      <div className="w-full h-[60%] md:w-1/2 md:h-full flex items-center justify-center p-2 md:p-6 z-20 pb-safe">
         
-        {/* --- LA CAJA DE CHAT RETRO --- */}
-        <div className="w-full max-w-xl h-[85%] flex flex-col pixel-box-white relative">
+        <div className="w-full max-w-xl h-full md:h-[85%] flex flex-col pixel-box-white relative shadow-xl">
           
-          {/* Header Rosado */}
-          <div className="p-3 text-center text-2xl font-bold tracking-widest pixel-box-pink">
-            💖 KITTY CHAT 💖
+          {/* HEADER */}
+          <div className="p-2 md:p-3 flex justify-between items-center pixel-box-pink relative">
+            <div className="w-8"></div> 
+            <div className="text-xl md:text-2xl font-bold tracking-widest">
+              💖 KITTY CHAT 💖
+            </div>
+            <button 
+              onClick={resetChat}
+              className="bg-white hover:bg-red-100 border-2 border-black w-8 h-8 flex items-center justify-center text-sm shadow-[2px_2px_0px_0px_black] active:translate-y-1 active:shadow-none transition-all"
+              title="Borrar memoria"
+            >
+              🗑️
+            </button>
           </div>
-           {/* Decoración de esquinas del header */}
-           <div className="absolute top-1 left-1 w-2 h-2 bg-white z-30"></div>
-           <div className="absolute top-1 right-1 w-2 h-2 bg-white z-30"></div>
+          
+           <div className="absolute top-1 left-1 w-2 h-2 bg-white z-30 pointer-events-none"></div>
+           <div className="absolute top-1 right-1 w-2 h-2 bg-white z-30 pointer-events-none"></div>
 
-
-          {/* Área de Mensajes */}
-          <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-white bg-opacity-90">
+          {/* MENSAJES */}
+          <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-2 md:p-4 space-y-4 bg-white bg-opacity-90">
             {messages.filter(m => m.role !== 'system').map((msg, idx) => (
               <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                 
-                 {/* Burbujas de chat cuadradas */}
                  <div 
-                    className={`p-3 max-w-[80%] text-xl border-4 ${
+                    className={`p-2 md:p-3 max-w-[85%] text-lg md:text-xl border-4 ${
                     msg.role === 'user' 
-                      // Usuario: Negro con texto blanco
                       ? 'bg-black text-white border-black shadow-[2px_2px_0px_0px_#ff77a8]' 
-                      // Avatar: Rosa con texto negro
                       : 'bg-[#ff99cc] text-black border-black shadow-[2px_2px_0px_0px_black]'
                   }`}
                 >
-                  {/* Etiqueta pequeña encima del mensaje */}
-                  <p className={`text-xs mb-1 tracking-wider ${msg.role === 'user' ? 'text-pink-300' : 'text-black opacity-60'}`}>
+                  <p className={`text-[10px] md:text-xs mb-1 tracking-wider ${msg.role === 'user' ? 'text-pink-300' : 'text-black opacity-60'}`}>
                     {msg.role === 'user' ? '► TÚ' : '🐱 KITTY AI'}
                   </p>
                   <p className="leading-tight">{msg.content}</p>
@@ -137,31 +167,41 @@ export default function App() {
               </div>
             ))}
              
-             {/* Indicador de "Escribiendo..." */}
              {loading && (
-                <div className="text-black text-lg animate-pulse pl-2">
-                  🐱 Escribiendo...
+                <div className="text-black text-base md:text-lg animate-pulse pl-2">
+                  🐱 Pensando...
                 </div>
              )}
           </div>
 
-          {/* Área de Input (Barra inferior negra) */}
-          <div className="p-3 bg-black border-t-4 border-black flex gap-2 relative">
+          {/* INPUT AREA */}
+          <div className="p-2 md:p-3 bg-black border-t-4 border-black flex gap-2 relative">
+            
+            <button 
+              onClick={handleSurprise}
+              disabled={loading}
+              className="pixel-button w-10 md:w-12 flex items-center justify-center text-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50"
+              title="¡Sorpréndeme!"
+            >
+              ✨
+            </button>
+
             <input 
-              className="flex-1 p-2 pixel-input text-xl"
-              placeholder="Di algo bonito..."
+              className="flex-1 p-2 pixel-input text-lg md:text-xl min-w-0"
+              placeholder="Escribe aquí..."
               value={input}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               onChange={(e) => setInput(e.target.value)}
             />
+            
             <button 
-              onClick={handleSend}
+              onClick={() => handleSend()}
               disabled={loading}
-              className="pixel-button px-6 py-2 text-xl font-bold disabled:opacity-50"
+              className="pixel-button px-3 md:px-5 py-2 text-lg md:text-xl font-bold disabled:opacity-50 whitespace-nowrap"
             >
-              ENVIAR 
+              ▶
             </button>
-             {/* Decoración de esquinas del footer */}
+
              <div className="absolute bottom-1 left-1 w-2 h-2 bg-white z-30 pointer-events-none"></div>
              <div className="absolute bottom-1 right-1 w-2 h-2 bg-white z-30 pointer-events-none"></div>
           </div>
