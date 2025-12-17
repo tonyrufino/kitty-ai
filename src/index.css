@@ -1,0 +1,76 @@
+/* src/index.css */
+
+/* 1. Importamos la fuente retro */
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+/* 2. Configuración base de Tailwind */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 3. Aplicamos el estilo base a toda la app */
+body {
+    font-family: 'VT323', monospace; /* La fuente pixelada */
+    background-color: #ffcce6; /* Un fondo rosa pastel base */
+    /* Esto ayuda a que las imágenes pequeñas no se vean borrosas al escalarlas */
+    image-rendering: pixelated; 
+}
+
+/* --- CLASES PERSONALIZADAS PIXELADAS --- */
+
+/* Caja blanca con borde negro grueso estilo retro */
+.pixel-box-white {
+    background-color: white;
+    border: 4px solid black;
+    /* Un pequeño efecto de "sombra" sólida */
+    box-shadow: 4px 4px 0px 0px rgba(0,0,0,1); 
+}
+
+/* Caja rosa para el header */
+.pixel-box-pink {
+    background-color: #ff77a8; /* Rosa más intenso */
+    border: 4px solid black;
+    color: black;
+}
+
+/* Botón pixelado */
+.pixel-button {
+    background-color: black;
+    color: white;
+    border: 2px solid white;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.1s;
+    /* Sombra sólida blanca para contraste */
+    box-shadow: 3px 3px 0px 0px white;
+}
+
+/* Efecto al hacer clic en el botón (se hunde) */
+.pixel-button:active {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0px 0px white;
+}
+
+/* Input de texto pixelado */
+.pixel-input {
+    background-color: white;
+    border: 3px solid black;
+    color: black;
+    font-family: 'VT323', monospace;
+    font-size: 1.2rem;
+}
+/* Quitamos el borde azul feo al seleccionar */
+.pixel-input:focus {
+    outline: none;
+    background-color: #fff0f7; /* Un rosa muy clarito al enfocar */
+}
+
+/* Scrollbar personalizada estilo retro */
+::-webkit-scrollbar {
+  width: 12px;
+  background: black;
+}
+::-webkit-scrollbar-thumb {
+  background: #ff77a8; 
+  border: 2px solid black;
+}
