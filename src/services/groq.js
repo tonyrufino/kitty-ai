@@ -16,7 +16,7 @@ export const getGroqResponse = async (messages) => {
 
   // 2. Del resto de la conversación, tomamos solo los últimos 10 mensajes.
   // slice(1) ignora el primero (system), slice(-10) toma los últimos 10.
-  const recentHistory = messages.slice(1).slice(-10);
+  const recentHistory = messages.slice(1).slice(-20);
 
   // 3. Reconstruimos el array optimizado para enviar a Groq
   const messagesToSend = [systemMessage, ...recentHistory];
