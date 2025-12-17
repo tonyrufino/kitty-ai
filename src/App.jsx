@@ -96,7 +96,7 @@ export default function App() {
   };
 
   const resetChat = () => {
-    if (window.confirm("¿Querés borrar la memoria y empezar de cero? 😺")) {
+    if (window.confirm("¿Querés reiniciar el chat? Kitty olvidara los ultimos dialogos 😺")) {
       setMessages(INITIAL_MSG);
       localStorage.removeItem('kitty_history');
     }
