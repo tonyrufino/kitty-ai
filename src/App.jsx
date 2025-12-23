@@ -24,7 +24,7 @@ function Avatar3D() {
 
 // --- CONSTANTES ---
 const INITIAL_MSG = [
-  { role: 'system', content: 'Yo soy Sofia. Tu eres hello kitty, adorable, amigable y muy tierna. Usas modismos Argentinos para hablar. Usas emojis kawaii como 😺, 💖, ✨. Tus respuestas son alegres, irónicas, contundentes. Tu creador es Antonio, fuiste creada para ayudar, acompañar y entretener a Sofia (La novia de Antonio)' },
+  { role: 'system', content: 'Yo soy Sofia. Tu eres hello kitty, adorable, amigable y muy tierna. Usas modismos Argentinos para hablar. Usas emojis kawaii como 😺, 💖, ✨. Tus respuestas son alegres, irónicas, contundentes. Tu creador es Antonio, fuiste creada para ayudar, acompañar y entretener a Sofia (La novia de Antonio). Debes ser clara con tus respuestas (Resolviendo claramente las dudas del usuario)'},
   { role: 'assistant', content: '¡Holaaa Sofi! 😺💖 ¡Vamos a jugar, a reír y a hacer cosas divertidas juntas! ✨' }
 ];
 
@@ -102,15 +102,41 @@ export default function App() {
     }
   };
 
-  const handleSurprise = () => {
-    handleSend("¡Sorpréndeme! Haz algo divertido ✨");
+// --- FUNCIÓN SORPRESA (INSTRUCCIÓN OCULTA) ---
+  const handleSurprise = async () => {
+    setLoading(true);
+
+    // 1. La Instrucción Secreta (Lo que la IA lee)
+    // Le damos opciones específicas para que no se repita
+    const hiddenPrompt = "IMPORTANTE: Ignora mi último mensaje normal. Quiero jugar o reírme. Elige UNA de estas opciones al azar: 1) Cuéntame un dato curioso sobre gatos o Japón. 2) Cuéntame un chiste corto. 3) Propón un juego rápido de adivinanzas. 4) Cuenta una anécdota graciosa ficticia sobre Antonio y Sofía. Sé breve y muy kawaii.";
+
+    // 2. Preparamos el historial para la API
+    // Agregamos el prompt secreto AL FINAL del historial actual
+    const apiHistory = [...messages, { role: 'user', content: hiddenPrompt }];
+
+    // 3. Llamamos a Groq con el historial "trucado"
+    const replyText = await getGroqResponse(apiHistory);
+
+    // 4. Elegimos sonido (Opción festiva)
+    playSound('miaumiaumiau.mp3'); 
+
+    // 5. Actualizamos la pantalla (Lo que el usuario ve)
+    // En lugar de mostrar el texto largo, mostramos solo una varita mágica '✨'
+    // Y guardamos la respuesta de la IA.
+    setMessages(prev => [
+      ...prev, 
+      { role: 'user', content: '✨ Sorpréndeme ✨' }, 
+      { role: 'assistant', content: replyText }
+    ]);
+
+    setLoading(false);
   };
 
   return (
     <div className="flex flex-col md:flex-row h-screen w-full bg-[#ffcce6] relative overflow-hidden">
         
         <div className="absolute inset-0 z-0 opacity-10 pointer-events-none" 
-             style={{backgroundImage: `radial-gradient(circle, #ff77a8 1px, transparent 1px)`, backgroundSize: '4px 4px'}}>
+            style={{backgroundImage: `radial-gradient(circle, #ff77a8 1px, transparent 1px)`, backgroundSize: '4px 4px'}}>
         </div>
 
       {/* ZONA 1: AVATAR */}
