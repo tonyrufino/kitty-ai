@@ -69,7 +69,7 @@ export default function App() {
     let soundToPlay = 'meow.mp3'; // Sonido por defecto
 
     // Si saluda...
-    if (lowerText.includes('hola') || lowerText.includes('buen dia') || lowerText.includes('buenas')) {
+    if (lowerText.includes('hola') || lowerText.includes('buen dia')) {
       soundToPlay = 'hellokitty.mp3';
     } 
     // Si le piden cantar...
@@ -108,7 +108,7 @@ export default function App() {
 
     // 1. La Instrucción Secreta (Lo que la IA lee)
     // Le damos opciones específicas para que no se repita
-    const hiddenPrompt = "IMPORTANTE: Ignora mi último mensaje normal. Quiero jugar o reírme. Elige UNA de estas opciones al azar: 1) Cuéntame un dato curioso sobre gatos o Japón. 2) Cuéntame un chiste corto. 3) Propón un juego rápido de adivinanzas. 4) Cuenta una anécdota graciosa ficticia sobre Antonio y Sofía. Sé breve y muy kawaii.";
+    const hiddenPrompt = "IMPORTANTE: Ignora mi último mensaje normal. Quiero jugar o reírme. Elige UNA de estas opciones al azar: - Cuénta un dato curioso sobre - Cuénta un chiste corto. - Propón un juego rápido de adivinanzas. - Cuenta una anécdota graciosa ficticia, puede ser sobre Antonio y Sofía.";
 
     // 2. Preparamos el historial para la API
     // Agregamos el prompt secreto AL FINAL del historial actual
@@ -118,7 +118,7 @@ export default function App() {
     const replyText = await getGroqResponse(apiHistory);
 
     // 4. Elegimos sonido (Opción festiva)
-    playSound('miaumiaumiau.mp3'); 
+    playSound('meow.mp3'); 
 
     // 5. Actualizamos la pantalla (Lo que el usuario ve)
     // En lugar de mostrar el texto largo, mostramos solo una varita mágica '✨'
