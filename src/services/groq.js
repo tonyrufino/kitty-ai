@@ -3,22 +3,16 @@ const API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 export const getGroqResponse = async (messages) => {
   // 1. Diagnóstico de la llave
   if (!API_KEY) {
-    console.error("🔴 ERROR: No se encontró la VITE_GROQ_API_KEY. ¿Creaste el archivo .env en la raíz? ¿Reiniciaste la terminal?");
+    console.error("🔴 ERROR: No se encontró la VITE_GROQ_API_KEY.");
     return "Error: Falta configurar la API Key.";
   }
   
-  // Imprimimos solo los primeros caracteres para verificar que la lee sin mostrarla toda
-  console.log("🟢 Llave detectada:", API_KEY.substring(0, 10) + "...");
+  // Opcional: Log para ver que la llave existe
+  // console.log("🟢 Llave detectada:", API_KEY.substring(0, 10) + "...");
 
-  // --- OPTIMIZACIÓN DE MEMORIA (Evita el Error 429) ---
-  // 1. Guardamos siempre el mensaje #0 (El System Prompt con la personalidad de Kitty)
+  // --- OPTIMIZACIÓN DE MEMORIA ---
   const systemMessage = messages[0];
-
-  // 2. Del resto de la conversación, tomamos solo los últimos 10 mensajes.
-  // slice(1) ignora el primero (system), slice(-10) toma los últimos 10.
   const recentHistory = messages.slice(1).slice(-20);
-
-  // 3. Reconstruimos el array optimizado para enviar a Groq
   const messagesToSend = [systemMessage, ...recentHistory];
 
   try {
@@ -29,17 +23,25 @@ export const getGroqResponse = async (messages) => {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        messages: messagesToSend, // <--- AQUÍ ENVIAMOS LA VERSIÓN CORTA
+        messages: messagesToSend,
         model: "llama-3.1-8b-instant",
         temperature: 0.6,
-        max_tokens: 500
+        max_tokens: 1000 
       })
     });
 
-    // 2. Si falla, leemos el mensaje REAL del servidor
+    // 2. MANEJO DE ERRORES INTELIGENTE
     if (!response.ok) {
+      
+      // CASO ESPECIAL: ERROR 429 (Límite de tokens superado)
+      if (response.status === 429) {
+        console.warn("⚠️ Límite de Groq alcanzado (429). Enviando mensaje de espera.");
+        return "Espera, me he cansado de tanto pensar, dame un minuto... 😿💤";
+      }
+
+      // OTROS ERRORES (400, 500, etc)
       const errorData = await response.json();
-      console.error("🔴 DETALLE ERROR GROQ:", errorData); // ¡MIRA ESTO EN LA CONSOLA!
+      console.error("🔴 DETALLE ERROR GROQ:", errorData);
       throw new Error(`Error ${response.status}: ${errorData.error?.message || "Desconocido"}`);
     }
 
@@ -48,6 +50,7 @@ export const getGroqResponse = async (messages) => {
 
   } catch (error) {
     console.error("Error conectando con Groq:", error);
-    return `Error técnico: ${error.message}`;
+    // Si es un error de red (internet caído), devolvemos esto:
+    return `¡Ups! Se me fue el internet. 😿 Revisá tu conexión.`;
   }
 };

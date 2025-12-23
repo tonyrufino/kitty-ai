@@ -88,8 +88,15 @@ export default function App() {
     // 3. Llamamos a la IA
     const replyText = await getGroqResponse(newHistory);
     
-    // 4. REPRODUCIMOS EL SONIDO ELEGIDO
-    playSound(soundToPlay);
+    // 4. LÓGICA FINAL DE SONIDO (Aquí está el cambio)
+    // Verificamos si la respuesta es el mensaje de error que configuramos en groq.js
+    if (replyText.includes("Espera, me he cansado")) {
+      // Si es el error, ignoramos el sonido anterior y ponemos el de queja/canto
+      playSound('miaumiaumiau.mp3');
+    } else {
+      // Si es una respuesta normal, reproducimos el que calculamos al principio
+      playSound(soundToPlay);
+    }
 
     setMessages(prev => [...prev, { role: 'assistant', content: replyText }]);
     setLoading(false);
