@@ -32,7 +32,7 @@ export const getGroqResponse = async (messages) => {
         messages: messagesToSend, // <--- AQUÍ ENVIAMOS LA VERSIÓN CORTA
         model: "llama-3.1-8b-instant",
         temperature: 0.6,
-        max_tokens: 200
+        max_tokens: 500
       })
     });
 

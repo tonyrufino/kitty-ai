@@ -160,7 +160,7 @@ export default function App() {
           <div className="p-2 md:p-3 flex justify-between items-center pixel-box-pink relative">
             <div className="w-8"></div> 
             <div className="text-xl md:text-2xl font-bold tracking-widest">
-              💖 KITTY CHAT 💖
+              💖 HELLO KITTY CHAT 💖
             </div>
             <button 
               onClick={resetChat}
